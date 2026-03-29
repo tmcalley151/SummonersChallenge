@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Creature Battle — The Underground Challenge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+/* =====================================================
+   CSS VARIABLES — change these to retheme the whole game
+   ===================================================== */
+:root{
+  --bg:#0d0b08; --bg2:#161210; --bg3:#1e1a16; --bg4:#252018;
+  --border:#3a3020; --border2:#4a4030;
+  --gold:#c8a84b; --gold-dim:#6e5a28; --gold-light:#e8cc80;
+  --text:#e0d4b8; --text-dim:#8a7a5a; --text-faint:#504838;
+  --red:#c04040; --green:#40a060; --yellow:#d0a020; --blue:#4080c0;
+  --type-fire:#e05020;--type-water:#2080e0;--type-grass:#30a030;
+  --type-lightning:#c8b800;--type-snow:#50b0c8;--type-air:#6080a0;
+  --type-earth:#907040;--type-steel:#7080a0;--type-fossil:#a07860;
+  --type-normal:#706050;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  font-family:'Crimson Pro',Georgia,serif;
+  background:var(--bg);color:var(--text);
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;
+  padding:1.5rem 1rem 3rem;
+  background-image:
+    radial-gradient(ellipse at 15% 60%,#1a1408 0%,transparent 55%),
+    radial-gradient(ellipse at 85% 20%,#080f18 0%,transparent 50%);
+}
+
+/* =====================================================
+   SCREENS
+   ===================================================== */
+.screen{display:none;width:100%;max-width:660px;animation:fadeIn .35s ease;}
+.screen.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* =====================================================
+   TYPOGRAPHY
+   ===================================================== */
+h1{
+  font-family:'Cinzel Decorative',serif;color:var(--gold);
+  text-align:center;font-size:1.5rem;line-height:1.3;
+  margin-bottom:.4rem;text-shadow:0 0 28px var(--gold-dim);letter-spacing:.04em;
+}
+h2{font-family:'Cinzel Decorative',serif;color:var(--gold);font-size:.85rem;letter-spacing:.08em;margin-bottom:.6rem;}
+h3{font-family:'Cinzel Decorative',serif;color:var(--gold-light);font-size:.65rem;letter-spacing:.06em;margin-bottom:.4rem;}
+.subtitle{text-align:center;color:var(--text-dim);font-style:italic;font-size:1.1rem;margin-bottom:1.25rem;line-height:1.6;}
+
+/* =====================================================
+   PANEL
+   ===================================================== */
+.panel{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:6px;padding:1.4rem;margin-bottom:.9rem;position:relative;
+}
+.panel::before,.panel::after{content:'✦';position:absolute;color:var(--gold-dim);font-size:.65rem;}
+.panel::before{top:5px;left:9px;} .panel::after{bottom:5px;right:9px;}
+
+.divider{display:flex;align-items:center;gap:.6rem;margin:.6rem 0;color:var(--gold-dim);font-size:.8rem;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* =====================================================
+   INPUTS & BUTTONS
+   ===================================================== */
+input[type=text]{
+  width:100%;background:var(--bg3);border:1px solid var(--border);
+  border-radius:4px;padding:.6rem 1rem;color:var(--text);
+  font-family:'Crimson Pro',serif;font-size:1.1rem;margin-bottom:.9rem;
+  outline:none;transition:border-color .2s;
+}
+input[type=text]:focus{border-color:var(--gold-dim);}
+input[type=text]::placeholder{color:var(--text-faint);}
+
+.btn{
+  display:block;width:100%;padding:.65rem 1rem;
+  background:transparent;border:1px solid var(--gold-dim);border-radius:4px;
+  color:var(--gold);font-family:'Cinzel Decorative',serif;font-size:.55rem;
+  letter-spacing:.1em;cursor:pointer;transition:background .18s,border-color .18s,color .18s;
+  text-align:center;
+}
+.btn:hover:not(:disabled){background:var(--gold-dim);color:var(--bg);border-color:var(--gold);}
+.btn:disabled{opacity:.3;cursor:not-allowed;}
+.btn.primary{background:var(--gold-dim);color:var(--bg);}
+.btn.primary:hover:not(:disabled){background:var(--gold);border-color:var(--gold-light);}
+.btn.small{font-size:.4rem;padding:.35rem .7rem;width:auto;display:inline-block;}
+.btn.danger{border-color:#603030;color:#b07070;}
+.btn.danger:hover:not(:disabled){background:#3a1a1a;color:var(--red);}
+
+/* =====================================================
+   WELCOME SCREEN — top-right settings button
+   ===================================================== */
+.welcome-header{position:relative;text-align:center;margin-bottom:.5rem;}
+.settings-btn{
+  position:absolute;top:0;right:0;
+  background:var(--bg3);border:1px solid var(--border);border-radius:4px;
+  padding:.3rem .55rem;cursor:pointer;color:var(--text-dim);
+  font-size:.95rem;transition:border-color .15s,color .15s;
+}
+.settings-btn:hover{border-color:var(--gold-dim);color:var(--gold);}
+
+/* =====================================================
+   SETTINGS MODAL (type chart + creature info)
+   ===================================================== */
+.modal-overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.75);z-index:100;
+  align-items:flex-start;justify-content:center;padding:1.5rem 1rem;overflow-y:auto;
+}
+.modal-overlay.open{display:flex;}
+.modal-box{
+  background:var(--bg2);border:1px solid var(--border2);border-radius:8px;
+  width:100%;max-width:680px;padding:1.5rem;position:relative;
+  animation:fadeIn .25s ease;
+}
+.modal-close{
+  position:absolute;top:.6rem;right:.8rem;
+  background:none;border:none;color:var(--text-dim);font-size:1.3rem;cursor:pointer;
+}
+.modal-close:hover{color:var(--text);}
+.modal-tabs{display:flex;gap:6px;margin-bottom:1rem;}
+.modal-tab{
+  flex:1;padding:.35rem;background:var(--bg3);border:1px solid var(--border);
+  border-radius:4px;cursor:pointer;font-family:'Cinzel Decorative',serif;
+  font-size:.38rem;color:var(--text-dim);letter-spacing:.05em;
+  transition:all .15s;
+}
+.modal-tab.active,.modal-tab:hover{border-color:var(--gold-dim);color:var(--gold);background:var(--bg4);}
+
+/* Type chart table */
+.type-table-wrap{overflow-x:auto;}
+table.type-tbl{border-collapse:collapse;font-size:.82rem;width:100%;}
+table.type-tbl th,table.type-tbl td{
+  border:1px solid var(--border);padding:3px 5px;text-align:center;
+  white-space:nowrap;
+}
+table.type-tbl th{background:var(--bg3);color:var(--text-dim);font-weight:600;font-size:.78rem;}
+table.type-tbl .super{background:#1a3010;color:#80d060;}
+table.type-tbl .weak{background:#301010;color:#d06060;}
+table.type-tbl .norm{color:var(--text-faint);}
+table.type-tbl .atk-lbl{
+  font-family:'Cinzel Decorative',serif;font-size:.35rem;
+  color:var(--gold-dim);writing-mode:vertical-rl;transform:rotate(180deg);padding:4px 2px;
+}
+
+/* Creature info cards */
+.creature-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.ci-card{background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:.75rem;}
+.ci-head{display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem;}
+.ci-emoji{font-size:1.5rem;}
+.ci-name{font-family:'Cinzel Decorative',serif;font-size:.42rem;color:var(--gold);}
+.ci-type{font-size:.8rem;}
+.ci-stats{display:flex;gap:8px;font-size:.82rem;color:var(--text-dim);margin:.3rem 0;}
+.ci-moves{font-size:.85rem;line-height:1.6;}
+.ci-move{margin-bottom:2px;}
+.ci-move .cat-a{color:#d08080;} .ci-move .cat-d{color:#8080d0;} .ci-move .cat-s{color:#d0a040;}
+
+/* =====================================================
+   CREATURE SELECT
+   ===================================================== */
+.select-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem;}
+.badge{font-family:'Cinzel Decorative',serif;font-size:.38rem;padding:3px 8px;border:1px solid var(--gold-dim);border-radius:3px;color:var(--gold);}
+.creature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:.9rem;}
+.c-card{
+  background:var(--bg3);border:1px solid var(--border);border-radius:5px;
+  padding:.55rem .45rem;cursor:pointer;text-align:center;
+  transition:border-color .15s,background .15s,transform .1s;position:relative;
+}
+.c-card:hover:not(.disabled){border-color:var(--gold-dim);transform:translateY(-2px);}
+.c-card.selected{border-color:var(--gold);background:#22200e;}
+.c-card.disabled{opacity:.38;cursor:not-allowed;}
+.c-card .order-num{position:absolute;top:4px;right:5px;font-family:'Cinzel Decorative',serif;font-size:.38rem;color:var(--gold);}
+.c-emoji{font-size:1.75rem;display:block;margin-bottom:2px;}
+.c-name{font-family:'Cinzel Decorative',serif;font-size:.35rem;color:var(--gold);margin-bottom:3px;}
+.c-type{font-size:.8rem;margin-bottom:3px;}
+.c-stats-mini{text-align:left;}
+.sbar-row{display:flex;align-items:center;gap:3px;margin-bottom:1px;}
+.sbar-lbl{font-size:.68rem;color:var(--text-faint);width:18px;}
+.sbar-track{flex:1;background:#111;border-radius:2px;height:4px;overflow:hidden;}
+.sbar-fill{height:100%;border-radius:2px;background:var(--gold-dim);}
+
+/* =====================================================
+   TYPE BADGES
+   ===================================================== */
+.type-badge{display:inline-block;font-size:.75rem;padding:1px 6px;border-radius:3px;color:#fff;margin-right:3px;}
+.type-fire{background:var(--type-fire);} .type-water{background:var(--type-water);}
+.type-grass{background:var(--type-grass);} .type-lightning{background:var(--type-lightning);color:#222;}
+.type-snow{background:var(--type-snow);} .type-air{background:var(--type-air);}
+.type-earth{background:var(--type-earth);} .type-steel{background:var(--type-steel);}
+.type-fossil{background:var(--type-fossil);} .type-normal{background:var(--type-normal);}
+
+/* =====================================================
+   BATTLE SCREEN
+   ===================================================== */
+.battle-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;}
+.level-banner{font-family:'Cinzel Decorative',serif;font-size:.5rem;color:var(--gold-dim);letter-spacing:.15em;}
+.summoner-names{font-size:.85rem;color:var(--text-dim);}
+
+.battlefield{
+  background:var(--bg2);border:1px solid var(--border);border-radius:6px;
+  padding:.9rem;margin-bottom:.7rem;
+  display:grid;grid-template-columns:1fr 36px 1fr;gap:.4rem;align-items:end;
+}
+.b-side{text-align:center;}
+.b-side.enemy-side{text-align:center;}
+.summoner-lbl{font-family:'Cinzel Decorative',serif;font-size:.35rem;color:var(--text-faint);letter-spacing:.07em;margin-bottom:3px;}
+.active-card{background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:.55rem .45rem;}
+.a-emoji{font-size:2.6rem;display:block;margin-bottom:3px;transition:transform .1s;}
+.a-emoji.shake{transform:translateX(7px);} .enemy-side .a-emoji.shake{transform:translateX(-7px);}
+.a-name{font-family:'Cinzel Decorative',serif;font-size:.38rem;color:var(--gold);margin-bottom:2px;}
+.a-type-line{font-size:.8rem;margin-bottom:4px;}
+.buffs-line{font-size:.78rem;color:var(--green);min-height:13px;margin-bottom:2px;}
+.shield-line{font-size:.78rem;color:var(--blue);min-height:13px;margin-bottom:3px;}
+.hp-lbl{font-size:.78rem;color:var(--text-faint);margin-bottom:2px;}
+.hp-track{background:#111;border:1px solid var(--border);border-radius:2px;height:7px;overflow:hidden;margin-bottom:2px;}
+.hp-fill{height:100%;border-radius:2px;background:var(--green);transition:width .4s ease,background .4s ease;}
+.hp-num{font-size:.82rem;color:var(--text-faint);}
+.bench-row{display:flex;gap:4px;margin-top:.5rem;justify-content:center;}
+.bench-pip{
+  width:26px;height:26px;border-radius:3px;border:1px solid var(--border);
+  background:var(--bg3);display:flex;align-items:center;justify-content:center;
+  font-size:.95rem;position:relative;
+}
+.bench-pip.fainted{opacity:.22;filter:grayscale(1);}
+.bench-pip.active-pip{border-color:var(--gold);}
+.bench-pip.hidden-pip{font-size:1rem;}
+.vs-col{display:flex;align-items:center;justify-content:center;font-family:'Cinzel Decorative',serif;font-size:.45rem;color:var(--gold-dim);}
+
+/* =====================================================
+   LOG BOX
+   ===================================================== */
+#log{
+  background:var(--bg2);border:1px solid var(--border);border-radius:5px;
+  padding:.7rem .95rem;font-size:1.08rem;line-height:1.5;
+  min-height:54px;margin-bottom:.7rem;color:var(--text);
+}
+
+/* =====================================================
+   ACTION PANEL
+   ===================================================== */
+.action-panel{background:var(--bg2);border:1px solid var(--border);border-radius:5px;padding:.9rem;margin-bottom:.7rem;}
+.action-tabs{display:flex;gap:5px;margin-bottom:.55rem;}
+.a-tab{
+  flex:1;padding:.35rem;background:var(--bg3);border:1px solid var(--border);
+  border-radius:4px;cursor:pointer;font-family:'Cinzel Decorative',serif;
+  font-size:.37rem;color:var(--text-faint);letter-spacing:.05em;transition:all .15s;
+}
+.a-tab.on,.a-tab:hover:not(:disabled){border-color:var(--gold-dim);color:var(--gold);background:var(--bg4);}
+.a-tab:disabled{opacity:.3;cursor:not-allowed;}
+
+.moves-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.move-btn{
+  background:var(--bg3);border:1px solid var(--border);border-radius:4px;
+  padding:.5rem .6rem;cursor:pointer;text-align:left;
+  color:var(--text);font-family:'Crimson Pro',serif;font-size:.97rem;
+  transition:border-color .15s,background .15s;
+}
+.move-btn:hover:not(:disabled){border-color:var(--gold-dim);background:var(--bg4);}
+.move-btn:disabled{opacity:.32;cursor:not-allowed;}
+.move-btn.cat-attack{border-left:3px solid #904040;}
+.move-btn.cat-defend{border-left:3px solid #305090;}
+.move-btn.cat-setup{border-left:3px solid #907030;}
+.move-name{font-size:.97rem;font-weight:600;margin-bottom:2px;}
+.move-info{font-size:.82rem;color:var(--text-dim);}
+
+/* Switch panel */
+.switch-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;}
+.sw-btn{
+  background:var(--bg3);border:1px solid var(--border);border-radius:4px;
+  padding:.45rem .35rem;cursor:pointer;text-align:center;
+  font-family:'Crimson Pro',serif;font-size:.9rem;color:var(--text);
+  transition:border-color .15s,background .15s;
+}
+.sw-btn:hover:not(:disabled){border-color:var(--gold-dim);}
+.sw-btn:disabled{opacity:.28;cursor:not-allowed;}
+.sw-btn.sw-active{border-color:var(--gold);background:#201e0e;}
+.sw-emoji{font-size:1.25rem;display:block;}
+.sw-name{font-size:.78rem;color:var(--gold);display:block;}
+.sw-hp{font-size:.72rem;color:var(--text-dim);}
+.sw-fainted{font-size:.72rem;color:var(--red);}
+
+/* FAINT SWITCH PROMPT */
+.faint-prompt{
+  background:var(--bg2);border:1px solid var(--red);border-radius:5px;
+  padding:.9rem;margin-bottom:.7rem;display:none;
+}
+.faint-prompt.open{display:block;}
+.faint-title{font-family:'Cinzel Decorative',serif;font-size:.48rem;color:var(--red);margin-bottom:.5rem;letter-spacing:.06em;}
+.faint-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.faint-btn{
+  background:var(--bg3);border:1px solid var(--border);border-radius:4px;
+  padding:.5rem .45rem;cursor:pointer;text-align:center;
+  font-family:'Crimson Pro',serif;font-size:.9rem;color:var(--text);
+  transition:border-color .15s,background .15s;
+}
+.faint-btn:hover:not(:disabled){border-color:var(--gold-dim);}
+.faint-btn:disabled{opacity:.28;cursor:not-allowed;}
+
+/* =====================================================
+   RESULT SCREENS
+   ===================================================== */
+.result-icon{font-size:2.8rem;text-align:center;margin-bottom:.4rem;}
+.result-title{font-family:'Cinzel Decorative',serif;font-size:.75rem;color:var(--gold);text-align:center;margin-bottom:.4rem;letter-spacing:.1em;}
+.result-body{font-size:1.05rem;color:var(--text-dim);text-align:center;line-height:1.6;margin-bottom:.9rem;}
+</style>
+</head>
+<body>
+
+<!-- ====================================================  SCREEN 1: WELCOME  ==================================================== -->
+<div id="screen-welcome" class="screen active">
+  <br/>
+  <div class="welcome-header">
+    <h1>Welcome<br/>Challenger</h1>
+    <!-- Settings button opens the modal -->
+    <button class="settings-btn" onclick="openSettings()" title="Type Chart & Creatures">⚙</button>
+  </div>
+  <p class="subtitle">A world beneath your feet awaits.</p>
+  <div class="panel">
+    <p style="font-size:1.08rem;line-height:1.75;color:var(--text-dim);margin-bottom:1rem;">
+      You are a clumsy citizen who has just tumbled down a manhole — deep into a new world.
+      When you wake, a desperate man stands over you. His people face a
+      <em style="color:var(--text)">Royal Challenge</em> they cannot overcome alone.<br/><br/>
+      He leads you to an ancient library. The path becomes clear:
+      you must become a <strong style="color:var(--gold)">Summoner</strong> — choose three creatures
+      and fight through three trials to win freedom for his people.<br/><br/>
+      <span style="color:var(--gold)">Who will you bring?</span>
+    </p>
+    <div class="divider">Enter Your Name</div>
+    <input type="text" id="player-name-input" placeholder="Your name…" maxlength="20"/>
+    <button class="btn primary" onclick="startAdventure()">✦ Start Adventure ✦</button>
+  </div>
+</div>
+
+<!-- ====================================================  SCREEN 2: SELECT  ==================================================== -->
+<div id="screen-select" class="screen">
+  <h1 style="font-size:1.05rem;margin-bottom:.2rem;">Choose Your Three</h1>
+  <p class="subtitle" style="margin-bottom:.6rem;">Study their strengths. Choose wisely.</p>
+  <div class="panel">
+    <div class="select-top">
+      <span style="font-size:1rem;color:var(--text-dim);">Select exactly <strong style="color:var(--gold)">3 creatures</strong></span>
+      <span class="badge" id="sel-count">0 / 3</span>
+    </div>
+    <div class="creature-grid" id="select-grid"></div>
+    <button class="btn primary" id="confirm-btn" onclick="confirmSelection()" disabled>✦ Enter the Challenge ✦</button>
+  </div>
+</div>
+
+<!-- ====================================================  SCREEN 3: BATTLE  ==================================================== -->
+<div id="screen-battle" class="screen">
+  <div class="battle-top">
+    <div class="level-banner" id="lvl-banner">LEVEL 1 — THE FIRST TRIAL</div>
+    <div class="summoner-names" id="summoner-names"></div>
+  </div>
+
+  <div class="battlefield">
+    <!-- PLAYER -->
+    <div class="b-side player-side">
+      <div class="summoner-lbl" id="p-sum-lbl"></div>
+      <div class="active-card">
+        <span class="a-emoji" id="p-emoji"></span>
+        <div class="a-name" id="p-cname"></div>
+        <div class="a-type-line" id="p-ctype"></div>
+        <div class="buffs-line" id="p-buffs"></div>
+        <div class="shield-line" id="p-shield"></div>
+        <div class="hp-lbl">HP</div>
+        <div class="hp-track"><div class="hp-fill" id="p-hpbar"></div></div>
+        <div class="hp-num" id="p-hpnum"></div>
+      </div>
+      <div class="bench-row" id="p-bench"></div>
+    </div>
+    <div class="vs-col">VS</div>
+    <!-- ENEMY -->
+    <div class="b-side enemy-side">
+      <div class="summoner-lbl" id="e-sum-lbl"></div>
+      <div class="active-card">
+        <span class="a-emoji" id="e-emoji"></span>
+        <div class="a-name" id="e-cname"></div>
+        <div class="a-type-line" id="e-ctype"></div>
+        <div class="buffs-line" id="e-buffs"></div>
+        <div class="shield-line" id="e-shield"></div>
+        <div class="hp-lbl">HP</div>
+        <div class="hp-track"><div class="hp-fill" id="e-hpbar"></div></div>
+        <div class="hp-num" id="e-hpnum"></div>
+      </div>
+      <div class="bench-row" id="e-bench"></div>
+    </div>
+  </div>
+
+  <div id="log">Prepare for battle!</div>
+
+  <!-- Normal action panel -->
+  <div class="action-panel" id="action-panel">
+    <div class="action-tabs">
+      <button class="a-tab on" id="tab-fight" onclick="showTab('fight')">⚔ Battle</button>
+      <button class="a-tab" id="tab-switch" onclick="showTab('switch')">↔ Switch</button>
+    </div>
+    <div id="panel-fight"><div class="moves-grid" id="moves-grid"></div></div>
+    <div id="panel-switch" style="display:none;"><div class="switch-grid" id="switch-grid"></div></div>
+  </div>
+
+  <!-- Faint switch prompt — shown when player's creature faints -->
+  <div class="faint-prompt" id="faint-prompt">
+    <div class="faint-title">Your creature fainted! Choose who to send next:</div>
+    <div class="faint-grid" id="faint-grid"></div>
+  </div>
+</div>
+
+<!-- ====================================================  SCREEN 4: LEVEL CLEAR  ==================================================== -->
+<div id="screen-levelclear" class="screen">
+  <div class="panel" style="text-align:center;padding:2rem 1.4rem;">
+    <div class="result-icon">⚔️</div>
+    <div class="result-title" id="lc-title"></div>
+    <div class="result-body" id="lc-body"></div>
+    <button class="btn primary" id="lc-btn" onclick="nextLevel()"></button>
+  </div>
+</div>
+
+<!-- ====================================================  SCREEN 5: GAME OVER  ==================================================== -->
+<div id="screen-gameover" class="screen">
+  <div class="panel" style="text-align:center;padding:2rem 1.4rem;">
+    <div class="result-icon">💀</div>
+    <div class="result-title">Defeated</div>
+    <div class="result-body" id="go-body"></div>
+    <button class="btn primary" onclick="resetToSelect()">✦ Try Again ✦</button>
+  </div>
+</div>
+
+<!-- ====================================================  SCREEN 6: VICTORY  ==================================================== -->
+<div id="screen-victory" class="screen">
+  <div class="panel" style="text-align:center;padding:2rem 1.4rem;">
+    <div class="result-icon">👑</div>
+    <div class="result-title">Challenge Complete!</div>
+    <div class="result-body" id="vic-body"></div>
+    <button class="btn primary" onclick="resetToSelect()">✦ Play Again ✦</button>
+  </div>
+</div>
+
+<!-- ====================================================  SETTINGS MODAL  ==================================================== -->
+<div class="modal-overlay" id="settings-modal" onclick="closeSettingsOutside(event)">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeSettings()">✕</button>
+    <h2 style="margin-bottom:.6rem;">Game Guide</h2>
+    <div class="modal-tabs">
+      <button class="modal-tab active" id="mtab-chart" onclick="openModalTab('chart')">Type Chart</button>
+      <button class="modal-tab" id="mtab-creatures" onclick="openModalTab('creatures')">Creatures</button>
+    </div>
+    <!-- TYPE CHART TAB -->
+    <div id="mpanel-chart">
+      <p style="font-size:.9rem;color:var(--text-dim);margin-bottom:.6rem;">
+        <span style="color:#80d060;">■</span> 1.25× super effective &nbsp;
+        <span style="color:#d06060;">■</span> 0.75× or less not effective &nbsp;
+        <span style="color:var(--text-faint);">■</span> 1× normal
+      </p>
+      <div class="type-table-wrap" id="type-table-container"></div>
+    </div>
+    <!-- CREATURES TAB -->
+    <div id="mpanel-creatures" style="display:none;">
+      <div class="creature-info-grid" id="creature-info-grid"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================================================================
+   STATIC DATA
+   ================================================================ */
+
+// Type effectiveness chart
+const TYPE_CHART = {
+  fire:      {fire:.75,water:.5,  grass:1.25,lightning:1,  snow:.75,air:1,   earth:1,   steel:1,  fossil:1   },
+  water:     {fire:1.25,water:.75,grass:.75, lightning:.75,snow:1,  air:1,   earth:1.25,steel:1,  fossil:1   },
+  grass:     {fire:.75,water:1.25,grass:.75, lightning:1,  snow:.75,air:1,   earth:1.25,steel:.75,fossil:1   },
+  lightning: {fire:1,  water:1.25,grass:1,   lightning:.75,snow:1,  air:1.25,earth:.75, steel:1,  fossil:1   },
+  snow:      {fire:.75,water:1,   grass:1.25,lightning:1,  snow:.75,air:1.25,earth:1.25,steel:.75,fossil:1   },
+  air:       {fire:1,  water:1,   grass:1,   lightning:1,  snow:.75,air:.75, earth:1,   steel:.75,fossil:1   },
+  earth:     {fire:1,  water:1,   grass:1,   lightning:.75,snow:1,  air:.75, earth:.75, steel:1,  fossil:1.25},
+  steel:     {fire:.75,water:1,   grass:1,   lightning:1,  snow:1,  air:1,   earth:1.25,steel:.75,fossil:1   },
+  fossil:    {fire:1,  water:1,   grass:1,   lightning:1,  snow:1,  air:1,   earth:1,   steel:1,  fossil:.75 }
+};
+const ALL_TYPES = ['fire','water','grass','lightning','snow','air','earth','steel','fossil'];
+
+// All 9 creature definitions
+const CREATURE_DEFS = [
+  {id:0,name:"Bowlo",  type:"fire",     emoji:"🔥",maxHp:120,speed:85, atk:105,def:90,
+   desc:"A spherical flaming rock with arms and a crown.",
+   moves:[
+    {name:"Fireball",       cat:"attack",type:"fire",  minD:70,maxD:80,acc:80,  info:"70-80 · 80%"},
+    {name:"Fire Punch",     cat:"attack",type:"fire",  minD:55,maxD:65,acc:95,  info:"55-65 · 95%"},
+    {name:"Protect",        cat:"defend",type:"normal",minD:0, maxD:0, acc:100, info:"Block this turn", eff:"protect"},
+    {name:"Bring the Heat", cat:"setup", type:"normal",minD:0, maxD:0, acc:100, info:"ATK ×1.25",       eff:"raise_atk"}
+  ]},
+  {id:1,name:"Froggert",type:"water",   emoji:"🐸",maxHp:90, speed:105,atk:95, def:110,
+   desc:"An evolved, upright frog carrying a leafpad shield.",
+   moves:[
+    {name:"Splash",        cat:"attack",type:"water", minD:45,maxD:55,acc:100, info:"45-55 · 100%"},
+    {name:"Tidal Wave",    cat:"attack",type:"water", minD:65,maxD:75,acc:87.5,info:"65-75 · 87.5%"},
+    {name:"Go for a Swim", cat:"setup", type:"normal",minD:0, maxD:0, acc:100, info:"DEF ×1.25",    eff:"raise_def"},
+    {name:"Extra Snack",   cat:"setup", type:"normal",minD:0, maxD:0, acc:100, info:"ATK ×1.25",    eff:"raise_atk"}
+  ]},
+  {id:2,name:"Stickler",type:"grass",   emoji:"🦗",maxHp:100,speed:120,atk:90, def:90,
+   desc:"A stickbug with giant eyes and powerful legs.",
+   moves:[
+    {name:"Call the Others",cat:"setup", type:"normal",minD:0, maxD:0, acc:100, info:"ATK ×1.25",    eff:"raise_atk"},
+    {name:"Protect",        cat:"defend",type:"normal",minD:0, maxD:0, acc:100, info:"Block this turn",eff:"protect"},
+    {name:"Stick Sword",    cat:"attack",type:"grass", minD:65,maxD:75,acc:82.5,info:"65-75 · 82.5%"},
+    {name:"Sneak Attack",   cat:"attack",type:"grass", minD:40,maxD:55,acc:100, info:"40-55 · 100%"}
+  ]},
+  {id:3,name:"Zar",     type:"lightning",emoji:"⚡",maxHp:90, speed:110,atk:110,def:90,
+   desc:"A storm-cloud given arms and legs, wielding lightning.",
+   moves:[
+    {name:"Lightning Strike",cat:"attack",type:"lightning",minD:75,maxD:85,acc:75,  info:"75-85 · 75%"},
+    {name:"Speed Strike",    cat:"attack",type:"lightning",minD:50,maxD:65,acc:95,  info:"50-65 · 95%"},
+    {name:"Fluff Up",        cat:"setup", type:"normal",   minD:0, maxD:0, acc:100, info:"DEF ×1.25",eff:"raise_def"},
+    {name:"Load Up",         cat:"setup", type:"normal",   minD:0, maxD:0, acc:100, info:"ATK ×1.25",eff:"raise_atk"}
+  ]},
+  {id:4,name:"Garve",   type:"snow",    emoji:"🐻‍❄️",maxHp:90, speed:85, atk:115,def:110,
+   desc:"King of polar bears, wielding a staff and summoning snow.",
+   moves:[
+    {name:"Hailstorm",      cat:"attack",type:"snow",  minD:75,maxD:85,acc:75,  info:"75-85 · 75%"},
+    {name:"Summon Snowman", cat:"setup", type:"normal",minD:0, maxD:0, acc:100, info:"DEF ×1.25",   eff:"raise_def"},
+    {name:"Protect",        cat:"defend",type:"normal",minD:0, maxD:0, acc:100, info:"Block this turn",eff:"protect"},
+    {name:"Avalanche",      cat:"attack",type:"snow",  minD:55,maxD:70,acc:95,  info:"55-70 · 95%"}
+  ]},
+  {id:5,name:"Flass",   type:"air",     emoji:"🦅",maxHp:100,speed:120,atk:90, def:90,
+   desc:"A giant eagle that rules the skies.",
+   moves:[
+    {name:"Talon Swipe",cat:"attack",type:"air",   minD:65,maxD:70,acc:90,  info:"65-70 · 90%"},
+    {name:"Vile Winds", cat:"attack",type:"air",   minD:75,maxD:85,acc:75,  info:"75-85 · 75%"},
+    {name:"Squawk",     cat:"setup", type:"normal",minD:0, maxD:0, acc:100, info:"DEF ×1.25",   eff:"raise_def"},
+    {name:"Protect",    cat:"defend",type:"normal",minD:0, maxD:0, acc:100, info:"Block this turn",eff:"protect"}
+  ]},
+  {id:6,name:"Mash",    type:"earth",   emoji:"🪨",maxHp:110,speed:85, atk:85, def:120,
+   desc:"A massive earth monster risen from the ground.",
+   moves:[
+    {name:"Compile",   cat:"setup", type:"normal",minD:0, maxD:0, acc:100, info:"DEF ×1.25",    eff:"raise_def"},
+    {name:"Integrate", cat:"setup", type:"normal",minD:0, maxD:0, acc:100, info:"ATK ×1.25",    eff:"raise_atk"},
+    {name:"Tree Throw",cat:"attack",type:"earth", minD:65,maxD:80,acc:82.5,info:"65-80 · 82.5%"},
+    {name:"Mud Grab",  cat:"attack",type:"earth", minD:45,maxD:55,acc:100, info:"45-55 · 100%"}
+  ]},
+  {id:7,name:"Clank",   type:"steel",   emoji:"🤖",maxHp:110,speed:90, atk:90, def:110,
+   desc:"A living steel beam that grew arms and legs.",
+   moves:[
+    {name:"Iron Sharpens Iron",cat:"setup", type:"normal",minD:0, maxD:0, acc:100, info:"DEF ×1.25",   eff:"raise_def"},
+    {name:"Protect",           cat:"defend",type:"normal",minD:0, maxD:0, acc:100, info:"Block this turn",eff:"protect"},
+    {name:"Beam Smash",        cat:"attack",type:"steel", minD:75,maxD:85,acc:75,  info:"75-85 · 75%"},
+    {name:"Sharp Edges",       cat:"attack",type:"steel", minD:45,maxD:60,acc:95,  info:"45-60 · 95%"}
+  ]},
+  {id:8,name:"Rork",    type:"fossil",  emoji:"🦖",maxHp:80, speed:90, atk:115,def:115,
+   desc:"A mysterious prehistoric dinosaur from ancient times.",
+   moves:[
+    {name:"Roar",             cat:"setup", type:"normal",minD:0, maxD:0, acc:100, info:"Enemy ATK −25%",eff:"lower_atk"},
+    {name:"Rampage",          cat:"setup", type:"normal",minD:0, maxD:0, acc:100, info:"ATK ×1.25",     eff:"raise_atk"},
+    {name:"Prehistoric Claw", cat:"attack",type:"fossil",minD:75,maxD:85,acc:75,  info:"75-85 · 75%"},
+    {name:"Tail Squeeze",     cat:"attack",type:"fossil",minD:55,maxD:65,acc:92.5,info:"55-65 · 92.5%"}
+  ]}
+];
+
+// Named summoners per level
+const SUMMONER_NAMES = {1:"Mbaku", 2:"Kratos", 3:"Tom"};
+
+/* ================================================================
+   GAME STATE
+   ================================================================ */
+let playerName="", selectedIds=[], playerTeam=[], enemyTeam=[];
+let pActiveIdx=0, eActiveIdx=0, currentLevel=1;
+let busy=false, awaitingFaintSwitch=false;
+// Track which enemy creatures have been revealed (shown on field)
+let eRevealed=new Set();
+
+/* ================================================================
+   UTILITIES
+   ================================================================ */
+function rnd(a,b){return a+Math.random()*(b-a);}
+function pick(arr){return arr[Math.floor(Math.random()*arr.length)];}
+function shuffle(arr){return [...arr].sort(()=>Math.random()-.5);}
+function getEff(atkType,defType){return (TYPE_CHART[atkType]&&TYPE_CHART[atkType][defType])||1;}
+
+// Create a live battle creature from a definition
+function makeLive(def, boost=1){
+  return {
+    id:def.id, name:def.name, type:def.type, emoji:def.emoji,
+    maxHp:Math.round(def.maxHp*boost),
+    hp:   Math.round(def.maxHp*boost),
+    speed:Math.round(def.speed*boost),
+    atk:  Math.round(def.atk*boost),
+    def:  Math.round(def.def*boost),
+    moves:def.moves,
+    atkMod:1.0, defMod:1.0, protected:false
+  };
+}
+
+/* ================================================================
+   DAMAGE: (Attack / Defense) × Move Damage, 5% crit
+   ================================================================ */
+function calcDmg(move, attacker, defender){
+  if(move.minD===0) return {dmg:0,crit:false,eff:1};
+  const base = rnd(move.minD, move.maxD);
+  const eff  = getEff(move.type, defender.type);
+  const ratio= (attacker.atk * attacker.atkMod) / (defender.def * defender.defMod);
+  const crit = Math.random()<.05;
+  const dmg  = Math.max(1, Math.round(base * eff * ratio * (crit?1.25:1)));
+  return {dmg, crit, eff};
+}
+function effMsg(eff){
+  if(eff>=1.25) return " Super effective!";
+  if(eff<=.75)  return " Not very effective.";
+  return "";
+}
+
+/* ================================================================
+   SCREEN MANAGEMENT
+   ================================================================ */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+/* ================================================================
+   SETTINGS MODAL
+   ================================================================ */
+function openSettings(){
+  document.getElementById('settings-modal').classList.add('open');
+  buildTypeTable();
+  buildCreatureInfo();
+  openModalTab('chart');
+}
+function closeSettings(){document.getElementById('settings-modal').classList.remove('open');}
+function closeSettingsOutside(e){if(e.target===document.getElementById('settings-modal'))closeSettings();}
+function openModalTab(tab){
+  document.getElementById('mpanel-chart').style.display    = tab==='chart'    ?'':'none';
+  document.getElementById('mpanel-creatures').style.display= tab==='creatures'?'':'none';
+  document.getElementById('mtab-chart').classList.toggle('active',tab==='chart');
+  document.getElementById('mtab-creatures').classList.toggle('active',tab==='creatures');
+}
+
+function buildTypeTable(){
+  const c = document.getElementById('type-table-container');
+  if(c.innerHTML) return; // already built
+  let html = '<table class="type-tbl"><thead><tr><th class="atk-lbl">ATK ↓ DEF →</th>';
+  ALL_TYPES.forEach(t=>html+=`<th><span class="type-badge type-${t}" style="font-size:.68rem">${t.slice(0,3)}</span></th>`);
+  html+='</tr></thead><tbody>';
+  ALL_TYPES.forEach(atk=>{
+    html+=`<tr><td><span class="type-badge type-${atk}" style="font-size:.68rem">${atk.slice(0,3)}</span></td>`;
+    ALL_TYPES.forEach(def=>{
+      const v=getEff(atk,def);
+      const cls=v>=1.25?'super':v<=.75?'weak':'norm';
+      html+=`<td class="${cls}">${v}</td>`;
+    });
+    html+='</tr>';
+  });
+  html+='</tbody></table>';
+  c.innerHTML=html;
+}
+
+function buildCreatureInfo(){
+  const g=document.getElementById('creature-info-grid');
+  if(g.innerHTML) return;
+  CREATURE_DEFS.forEach(d=>{
+    let movesHtml='';
+    d.moves.forEach(m=>{
+      const cls=m.cat==='attack'?'cat-a':m.cat==='defend'?'cat-d':'cat-s';
+      movesHtml+=`<div class="ci-move"><span class="${cls}">▸</span> ${m.name} — ${m.info}</div>`;
+    });
+    g.innerHTML+=`<div class="ci-card">
+      <div class="ci-head">
+        <span class="ci-emoji">${d.emoji}</span>
+        <div>
+          <div class="ci-name">${d.name}</div>
+          <div class="ci-type"><span class="type-badge type-${d.type}">${d.type}</span></div>
+        </div>
+      </div>
+      <div class="ci-stats">HP ${d.maxHp} · SPD ${d.speed} · ATK ${d.atk} · DEF ${d.def}</div>
+      <p style="font-size:.82rem;color:var(--text-dim);margin-bottom:.35rem;">${d.desc}</p>
+      <div class="ci-moves">${movesHtml}</div>
+    </div>`;
+  });
+}
+
+/* ================================================================
+   WELCOME → SELECT
+   ================================================================ */
+function startAdventure(){
+  const n=document.getElementById('player-name-input').value.trim();
+  if(!n){alert("Please enter your name!");return;}
+  playerName=n;
+  buildSelectScreen();
+  showScreen('screen-select');
+}
+
+/* ================================================================
+   CREATURE SELECTION
+   ================================================================ */
+function buildSelectScreen(){
+  selectedIds=[];
+  const grid=document.getElementById('select-grid');
+  grid.innerHTML='';
+  document.getElementById('sel-count').textContent='0 / 3';
+  document.getElementById('confirm-btn').disabled=true;
+  CREATURE_DEFS.forEach(d=>{
+    const card=document.createElement('div');
+    card.className='c-card';
+    card.id='sc-'+d.id;
+    card.onclick=()=>toggleSel(d.id);
+    card.innerHTML=
+      `<span class="order-num" id="on-${d.id}"></span>`+
+      `<span class="c-emoji">${d.emoji}</span>`+
+      `<div class="c-name">${d.name}</div>`+
+      `<div class="c-type"><span class="type-badge type-${d.type}">${d.type}</span></div>`+
+      `<div class="c-stats-mini">`+
+        mkSBar('HP',d.maxHp,120)+mkSBar('ATK',d.atk,120)+
+        mkSBar('DEF',d.def,120)+mkSBar('SPD',d.speed,120)+
+      `</div>`;
+    grid.appendChild(card);
+  });
+}
+function mkSBar(l,v,m){
+  return `<div class="sbar-row"><span class="sbar-lbl">${l}</span>`+
+    `<div class="sbar-track"><div class="sbar-fill" style="width:${Math.round(v/m*100)}%"></div></div></div>`;
+}
+function toggleSel(id){
+  const i=selectedIds.indexOf(id);
+  if(i>=0) selectedIds.splice(i,1);
+  else{ if(selectedIds.length>=3)return; selectedIds.push(id); }
+  CREATURE_DEFS.forEach(d=>{
+    const c=document.getElementById('sc-'+d.id);
+    const ob=document.getElementById('on-'+d.id);
+    const pos=selectedIds.indexOf(d.id);
+    c.classList.toggle('selected',pos>=0);
+    c.classList.toggle('disabled',selectedIds.length>=3&&pos<0);
+    ob.textContent=pos>=0?(pos+1):'';
+  });
+  document.getElementById('sel-count').textContent=selectedIds.length+' / 3';
+  document.getElementById('confirm-btn').disabled=selectedIds.length!==3;
+}
+function confirmSelection(){
+  if(selectedIds.length!==3) return;
+  currentLevel=1;
+  // Build player team from selections (full HP)
+  playerTeam=selectedIds.map(id=>makeLive(CREATURE_DEFS[id]));
+  startLevel();
+}
+
+/* ================================================================
+   LEVEL SETUP
+   ================================================================ */
+const LEVEL_LABELS=["LEVEL 1 — THE FIRST TRIAL","LEVEL 2 — THE SECOND TRIAL","LEVEL 3 — THE FINAL TRIAL"];
+
+function startLevel(){
+  // Reset player team fully between levels (spec: "health and all stats return to normal")
+  playerTeam.forEach(c=>{
+    const base=CREATURE_DEFS[c.id];
+    c.hp=c.maxHp; c.atkMod=1; c.defMod=1; c.protected=false;
+    // Reset base stats in case they were modified
+    c.atk=base.atk; c.def=base.def; c.speed=base.speed;
+  });
+
+  // Build enemy team — no creatures shared with player, no duplicates within enemy
+  const forbidden=new Set(selectedIds);
+  const pool=shuffle(CREATURE_DEFS.filter(d=>!forbidden.has(d.id)));
+  const boost=currentLevel===3?1.05:1;
+  const count=currentLevel===1?2:3;
+  enemyTeam=pool.slice(0,count).map(d=>makeLive(d,boost));
+
+  pActiveIdx=0; eActiveIdx=0;
+  eRevealed=new Set([0]); // First enemy is revealed immediately
+  busy=false; awaitingFaintSwitch=false;
+
+  document.getElementById('lvl-banner').textContent=LEVEL_LABELS[currentLevel-1];
+  document.getElementById('summoner-names').textContent=
+    playerName+' vs '+SUMMONER_NAMES[currentLevel];
+  document.getElementById('p-sum-lbl').textContent=playerName;
+  document.getElementById('e-sum-lbl').textContent=SUMMONER_NAMES[currentLevel];
+
+  showScreen('screen-battle');
+  document.getElementById('faint-prompt').classList.remove('open');
+  document.getElementById('action-panel').style.display='';
+
+  setLog(playerName+' summons '+playerTeam[pActiveIdx].name+' to battle!');
+  renderAll();
+  buildActions();
+}
+
+/* ================================================================
+   RENDER
+   ================================================================ */
+function hpPct(c){return Math.max(0,c.hp)/c.maxHp;}
+function hpCol(p){return p>.5?'var(--green)':p>.25?'var(--yellow)':'var(--red)';}
+
+function renderSide(pre, team, activeIdx, isEnemy){
+  const c=team[activeIdx];
+  document.getElementById(pre+'-emoji').textContent = c.emoji;
+  document.getElementById(pre+'-cname').textContent = c.name;
+  document.getElementById(pre+'-ctype').innerHTML   =
+    `<span class="type-badge type-${c.type}">${c.type}</span>`;
+  const p=hpPct(c);
+  document.getElementById(pre+'-hpbar').style.width     =(p*100)+'%';
+  document.getElementById(pre+'-hpbar').style.background=hpCol(p);
+  document.getElementById(pre+'-hpnum').textContent     =Math.max(0,c.hp)+' / '+c.maxHp;
+  let buffs=[];
+  if(c.atkMod>1) buffs.push('⬆ATK ×'+c.atkMod.toFixed(2));
+  if(c.defMod>1) buffs.push('⬆DEF ×'+c.defMod.toFixed(2));
+  if(c.atkMod<1) buffs.push('⬇ATK ×'+c.atkMod.toFixed(2));
+  document.getElementById(pre+'-buffs').textContent =buffs.join(' ');
+  document.getElementById(pre+'-shield').textContent=c.protected?'🛡 Protected!':'';
+
+  // Bench pips
+  const bench=document.getElementById(pre+'-bench');
+  bench.innerHTML='';
+  team.forEach((t,i)=>{
+    const pip=document.createElement('div');
+    // For enemy team, show ? until revealed
+    if(isEnemy && !eRevealed.has(i)){
+      pip.className='bench-pip hidden-pip'+(i===activeIdx?' active-pip':'');
+      pip.textContent='❓';
+    } else {
+      pip.className='bench-pip'+(t.hp<=0?' fainted':'')+(i===activeIdx?' active-pip':'');
+      pip.textContent=t.emoji;
+    }
+    bench.appendChild(pip);
+  });
+}
+
+function renderAll(){
+  renderSide('p',playerTeam,pActiveIdx,false);
+  renderSide('e',enemyTeam,eActiveIdx,true);
+}
+
+function setLog(msg){document.getElementById('log').textContent=msg;}
+
+/* ================================================================
+   ACTION PANEL
+   ================================================================ */
+function showTab(tab){
+  document.getElementById('panel-fight').style.display =tab==='fight'?'':'none';
+  document.getElementById('panel-switch').style.display=tab==='switch'?'':'none';
+  document.getElementById('tab-fight').classList.toggle('on',tab==='fight');
+  document.getElementById('tab-switch').classList.toggle('on',tab==='switch');
+  if(tab==='switch') buildSwitchPanel();
+}
+function setActionsDisabled(d){
+  document.querySelectorAll('.move-btn,.a-tab,.sw-btn').forEach(b=>b.disabled=d);
+}
+function buildActions(){
+  showTab('fight');
+  buildMoveButtons();
+  setActionsDisabled(false);
+}
+function buildMoveButtons(){
+  const grid=document.getElementById('moves-grid');
+  grid.innerHTML='';
+  playerTeam[pActiveIdx].moves.forEach((m,i)=>{
+    const btn=document.createElement('button');
+    btn.className='move-btn cat-'+m.cat;
+    const badge=`<span class="type-badge type-${m.type}">${m.cat==='attack'?m.type:m.cat}</span>`;
+    btn.innerHTML=`<div class="move-name">${m.name}</div><div class="move-info">${badge}${m.info}</div>`;
+    btn.onclick=()=>playerMove(i);
+    grid.appendChild(btn);
+  });
+}
+function buildSwitchPanel(){
+  const grid=document.getElementById('switch-grid');
+  grid.innerHTML='';
+  playerTeam.forEach((c,i)=>{
+    const btn=document.createElement('button');
+    btn.className='sw-btn'+(i===pActiveIdx?' sw-active':'');
+    btn.disabled=i===pActiveIdx||c.hp<=0;
+    btn.innerHTML=
+      `<span class="sw-emoji">${c.emoji}</span>`+
+      `<span class="sw-name">${c.name}</span>`+
+      (c.hp>0?`<span class="sw-hp">${Math.max(0,c.hp)}/${c.maxHp}</span>`:`<span class="sw-fainted">Fainted</span>`);
+    btn.onclick=()=>playerSwitch(i);
+    grid.appendChild(btn);
+  });
+}
+
+/* ================================================================
+   FAINT SWITCH PROMPT
+   ================================================================ */
+function showFaintPrompt(){
+  awaitingFaintSwitch=true;
+  document.getElementById('action-panel').style.display='none';
+  const prompt=document.getElementById('faint-prompt');
+  prompt.classList.add('open');
+  const grid=document.getElementById('faint-grid');
+  grid.innerHTML='';
+  playerTeam.forEach((c,i)=>{
+    if(c.hp<=0) return; // Skip fainted
+    const btn=document.createElement('button');
+    btn.className='faint-btn';
+    btn.innerHTML=`${c.emoji} <strong>${c.name}</strong> <span style="color:var(--text-dim)">${c.hp}/${c.maxHp} HP</span>`;
+    btn.onclick=()=>faintSwitch(i);
+    grid.appendChild(btn);
+  });
+}
+function faintSwitch(idx){
+  pActiveIdx=idx;
+  const c=playerTeam[pActiveIdx];
+  awaitingFaintSwitch=false;
+  document.getElementById('faint-prompt').classList.remove('open');
+  document.getElementById('action-panel').style.display='';
+  setLog(playerName+' summons '+c.name+' to battle!');
+  renderAll();
+  buildMoveButtons();
+  // After player is forced to switch, enemy does NOT get a free turn —
+  // next round starts fresh
+  busy=false;
+  buildActions();
+}
+
+/* ================================================================
+   SPEED & PRIORITY TURN ORDER
+   - Setup/defend moves and switches have priority
+   - Otherwise, higher speed goes first
+   ================================================================ */
+function hasPriority(move){
+  return move && (move.cat==='setup'||move.cat==='defend');
+}
+
+/* ================================================================
+   PLAYER ACTIONS
+   ================================================================ */
+function playerMove(idx){
+  if(busy||awaitingFaintSwitch) return;
+  const move=playerTeam[pActiveIdx].moves[idx];
+  busy=true; setActionsDisabled(true);
+
+  const p=playerTeam[pActiveIdx];
+  const e=enemyTeam[eActiveIdx];
+
+  // Decide enemy move first (so we can compare priority & speed)
+  const eMove=pickEnemyMove();
+
+  // Priority: setup/defend/switch > attack; if both have priority or neither, use speed
+  const pHasPri = hasPriority(move);
+  const eHasPri = eMove && hasPriority(eMove);
+  let pFirst;
+  if(pHasPri && !eHasPri)       pFirst=true;
+  else if(!pHasPri && eHasPri)  pFirst=false;
+  else                           pFirst=p.speed>=e.speed; // speed tiebreak (higher = first)
+
+  if(pFirst){
+    executePlayerMove(move,()=>{
+      if(checkEnemyFainted()) return;
+      p.protected=false;
+      executeEnemyMove(eMove,null);
+    });
+  } else {
+    executeEnemyMove(eMove,()=>{
+      if(checkPlayerFainted()) return;
+      e.protected=false;
+      executePlayerMove(move,null);
+    });
+  }
+}
+
+function playerSwitch(idx){
+  if(busy||awaitingFaintSwitch||idx===pActiveIdx||playerTeam[idx].hp<=0) return;
+  busy=true; setActionsDisabled(true);
+  playerTeam[pActiveIdx].protected=false;
+  pActiveIdx=idx;
+  const c=playerTeam[pActiveIdx];
+  setLog(playerName+' summons '+c.name+' to battle!');
+  renderAll(); buildMoveButtons();
+
+  // Switch has priority — enemy moves after
+  setTimeout(()=>{
+    const eMove=pickEnemyMove();
+    executeEnemyMove(eMove,null);
+  },900);
+}
+
+/* ================================================================
+   EXECUTE MOVES
+   ================================================================ */
+function executePlayerMove(move, after){
+  const p=playerTeam[pActiveIdx], e=enemyTeam[eActiveIdx];
+
+  if(move.cat!=='attack'){
+    applyEffect(move.eff,p,e,playerName+' uses '+move.name+'!');
+    renderAll();
+    setTimeout(()=>{ if(after) after(); else finishRound(); },900);
+    return;
+  }
+  if(Math.random()*100>move.acc){
+    setLog(p.name+' used '+move.name+'... but it missed!');
+    setTimeout(()=>{ if(after) after(); else finishRound(); },900);
+    return;
+  }
+  if(e.protected){
+    setLog(p.name+' attacks! But '+e.name+' is protected!');
+    e.protected=false; renderAll();
+    setTimeout(()=>{ if(after) after(); else finishRound(); },900);
+    return;
+  }
+  const res=calcDmg(move,p,e);
+  e.hp=Math.max(0,e.hp-res.dmg);
+  shake('e-emoji');
+  setLog(playerName+' summons '+p.name+' to battle! '+p.name+' used '+move.name+
+    '! Dealt '+res.dmg+' damage.'+(res.crit?' Critical hit!':'')+effMsg(res.eff));
+  renderAll();
+  setTimeout(()=>{ if(after) after(); else finishRound(); },1000);
+}
+
+function executeEnemyMove(move, after){
+  const p=playerTeam[pActiveIdx], e=enemyTeam[eActiveIdx];
+
+  if(!move){ finishRound(); return; }
+
+  if(move.cat!=='attack'){
+    applyEffect(move.eff,e,p,SUMMONER_NAMES[currentLevel]+"'s "+e.name+' uses '+move.name+'!');
+    renderAll();
+    setTimeout(()=>{ if(after) after(); else finishRound(); },900);
+    return;
+  }
+  if(Math.random()*100>move.acc){
+    setLog(e.name+' used '+move.name+'... but it missed!');
+    setTimeout(()=>{ if(after) after(); else finishRound(); },900);
+    return;
+  }
+  if(p.protected){
+    setLog(e.name+' attacks! But '+p.name+' is protected!');
+    p.protected=false; renderAll();
+    setTimeout(()=>{ if(after) after(); else finishRound(); },900);
+    return;
+  }
+  const res=calcDmg(move,e,p);
+  p.hp=Math.max(0,p.hp-res.dmg);
+  shake('p-emoji');
+  setLog(SUMMONER_NAMES[currentLevel]+"'s "+e.name+' used '+move.name+
+    '! Dealt '+res.dmg+' damage.'+(res.crit?' Critical hit!':'')+effMsg(res.eff));
+  renderAll();
+  setTimeout(()=>{ if(after) after(); else finishRound(); },1000);
+}
+
+function finishRound(){
+  if(checkEnemyFainted()) return;
+  if(checkPlayerFainted()) return;
+  busy=false;
+  buildActions();
+}
+
+/* ================================================================
+   EFFECTS
+   ================================================================ */
+function applyEffect(eff,user,target,logMsg){
+  setLog(logMsg);
+  switch(eff){
+    case 'raise_atk': user.atkMod=Math.min(2,+(user.atkMod*1.25).toFixed(4)); break;
+    case 'raise_def': user.defMod=Math.min(2,+(user.defMod*1.25).toFixed(4)); break;
+    case 'lower_atk': target.atkMod=Math.max(.5,+(target.atkMod*.75).toFixed(4)); break;
+    case 'protect':   user.protected=true; break;
+  }
+}
+
+/* ================================================================
+   ANIMATIONS
+   ================================================================ */
+function shake(id){
+  const el=document.getElementById(id);
+  if(!el) return;
+  el.classList.add('shake');
+  setTimeout(()=>el.classList.remove('shake'),150);
+}
+
+/* ================================================================
+   FAINT CHECKS
+   ================================================================ */
+function checkEnemyFainted(){
+  if(enemyTeam[eActiveIdx].hp>0) return false;
+  const next=enemyTeam.findIndex((c,i)=>i!==eActiveIdx&&c.hp>0);
+  if(next<0){ levelClear(); return true; }
+  eActiveIdx=next;
+  eRevealed.add(next); // Reveal this creature now it's on the field
+  setLog(SUMMONER_NAMES[currentLevel]+' sends out a new creature!');
+  renderAll();
+  setTimeout(()=>{ busy=false; buildActions(); },900);
+  return true;
+}
+
+function checkPlayerFainted(){
+  if(playerTeam[pActiveIdx].hp>0) return false;
+  const anyAlive=playerTeam.some(c=>c.hp>0);
+  if(!anyAlive){ gameOver(); return true; }
+  // Show faint prompt so player picks next creature
+  setLog(playerTeam[pActiveIdx].name+' fainted! Choose your next creature!');
+  renderAll();
+  setTimeout(()=>showFaintPrompt(),700);
+  return true;
+}
+
+/* ================================================================
+   ENEMY AI — picks a move based on level rules
+   ================================================================ */
+function pickEnemyMove(){
+  const e=enemyTeam[eActiveIdx];
+  const p=playerTeam[pActiveIdx];
+
+  // Level 1: attack only, prioritise super-effective
+  if(currentLevel===1){
+    // Low HP switch: 10% chance if below 15%
+    if(hpPct(e)<.15 && Math.random()<.10){
+      doEnemySwitch(); return null; // null = switch already handled
+    }
+    return pickBestAttack(e,p);
+  }
+
+  // Level 2 & 3: all moves, prioritise super-effective; 25% bench switch if super-effective benched
+  const superBenchIdx=enemyTeam.findIndex((c,i)=>
+    i!==eActiveIdx&&c.hp>0&&c.moves.some(m=>m.cat==='attack'&&getEff(m.type,p.type)>=1.25));
+  if(superBenchIdx>=0&&Math.random()<.25){
+    doEnemySwitch(superBenchIdx); return null;
+  }
+  return pickBestMoveAll(e,p);
+}
+
+function pickBestAttack(e,p){
+  const atks=e.moves.filter(m=>m.cat==='attack');
+  const super_=atks.filter(m=>getEff(m.type,p.type)>=1.25);
+  return pick(super_.length?super_:atks);
+}
+function pickBestMoveAll(e,p){
+  const atks=e.moves.filter(m=>m.cat==='attack');
+  const super_=atks.filter(m=>getEff(m.type,p.type)>=1.25);
+  if(super_.length) return pick(super_);
+  return pick(e.moves);
+}
+function doEnemySwitch(idx){
+  // If no index given, find first alive non-active
+  if(idx===undefined) idx=enemyTeam.findIndex((c,i)=>i!==eActiveIdx&&c.hp>0);
+  if(idx<0) return;
+  enemyTeam[eActiveIdx].protected=false;
+  eActiveIdx=idx;
+  eRevealed.add(idx);
+  setLog(SUMMONER_NAMES[currentLevel]+' switches creatures!');
+  renderAll();
+  // Enemy switch has priority — player already took their turn OR
+  // this is called before executing, so just finish
+}
+
+/* ================================================================
+   LEVEL CLEAR / GAME OVER / VICTORY
+   ================================================================ */
+function levelClear(){
+  busy=true;
+  setTimeout(()=>{
+    if(currentLevel>=3){ victory(); return; }
+    document.getElementById('lc-title').textContent='Trial '+currentLevel+' Complete!';
+    document.getElementById('lc-body').textContent=
+      'Well fought, '+playerName+'! '+SUMMONER_NAMES[currentLevel]+
+      ' has been defeated. Rest up — Trial '+(currentLevel+1)+' awaits.';
+    document.getElementById('lc-btn').textContent='✦ Continue to Trial '+(currentLevel+1)+' ✦';
+    showScreen('screen-levelclear');
+  },700);
+}
+function nextLevel(){ currentLevel++; startLevel(); }
+
+function gameOver(){
+  setTimeout(()=>{
+    document.getElementById('go-body').textContent=
+      'All of '+playerName+"'s creatures have fainted on Trial "+currentLevel+
+      '. '+SUMMONER_NAMES[currentLevel]+' stands victorious. Will you try again?';
+    showScreen('screen-gameover');
+  },700);
+}
+function victory(){
+  document.getElementById('vic-body').textContent=
+    playerName+' has conquered all three trials — defeating Mbaku, Kratos, and Tom! '+
+    'The people of the underground world cheer your name. You are a true Summoner.';
+  showScreen('screen-victory');
+}
+function resetToSelect(){
+  buildSelectScreen();
+  showScreen('screen-select');
+}
+</script>
+</body>
+</html>
